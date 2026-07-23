@@ -39,6 +39,15 @@ def shadow(img,pos,txt,f,fill=WHITE,anchor="ma",blur=6):
     img.alpha_composite(lay.filter(ImageFilter.GaussianBlur(blur)))
     ImageDraw.Draw(img).text(pos,txt,font=f,fill=fill,anchor=anchor)
 
+_D = ImageDraw.Draw(Image.new("RGBA",(10,10)))
+def txt_w(txt,f): return _D.textbbox((0,0),txt,font=f)[2]
+def fit_font(txt, bold, max_size, maxw, min_size=34):
+    """Largest font (<=max_size) that keeps txt within maxw; never below min_size."""
+    s=max_size
+    while s>min_size and txt_w(txt,font(bold,s))>maxw:
+        s-=2
+    return font(bold,s)
+
 def make(kind,title,sub=None):
     img=Image.new("RGBA",(W,H),(0,0,0,0)); d=ImageDraw.Draw(img); cx=W//2
     if kind=="title":
@@ -46,16 +55,17 @@ def make(kind,title,sub=None):
         d.rectangle([0,H-620,W,H],fill=(6,12,28,120))
         y=H-500
         for i,l in enumerate(lines):
-            shadow(img,(cx,y+i*130),l,font(True,104))
-        if sub: shadow(img,(cx,y+len(lines)*130+18),sub,font(False,48),fill=(225,233,255,255))
+            shadow(img,(cx,y+i*130),l,fit_font(l,True,104,W-120))
+        if sub: shadow(img,(cx,y+len(lines)*130+18),sub,fit_font(sub,False,48,W-160),fill=(225,233,255,255))
     elif kind=="chip":
-        f=font(True,64); tw=d.textbbox((0,0),title,font=f)[2]; y=H-430
-        d.rounded_rectangle([cx-tw//2-46,y-26,cx+tw//2+46,y+94],radius=22,fill=BLUE)
+        f=fit_font(title,True,64,W-230); tw=txt_w(title,f); y=H-430
+        half=min(tw//2+46,(W-40)//2)
+        d.rounded_rectangle([cx-half,y-26,cx+half,y+94],radius=22,fill=BLUE)
         shadow(img,(cx,y),title,f,blur=4)
     elif kind=="endbrand":
         d.rectangle([0,H//2-190,W,H//2+190],fill=SCRIM)
-        shadow(img,(cx,H//2-140),title,font(True,120))
-        if sub: shadow(img,(cx,H//2+40),sub,font(True,58),fill=(255,224,130,255))
+        shadow(img,(cx,H//2-140),title,fit_font(title,True,120,W-140))
+        if sub: shadow(img,(cx,H//2+40),sub,fit_font(sub,True,58,W-160),fill=(255,224,130,255))
     return img
 
 OVER=[  # kind,t0,t1,title,sub
